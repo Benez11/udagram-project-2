@@ -43,7 +43,7 @@ import {
   app.get("/filteredimage", async (req, res) => {
     try {
       // Extract and validate image_url query parameter
-      const { image_url } = req.query;
+      const { image_url }: { image_url: string } = req.query;
       if (!image_url)
         return res.status(400).json({
           message:
@@ -74,15 +74,18 @@ import {
 
       return;
     } catch (e) {
+      const error_data: any = {};
+      if (e instanceof Error)
+        error_data.error = {
+          message: e.message,
+          stack: e.stack,
+        };
+      else error_data.error = e;
+
       return res.status(500).json({
         message:
           "An internal server error has occurred. View details in the logs",
-        data: {
-          error: {
-            message: e.message,
-            stack: e.stack,
-          },
-        },
+        data: error_data,
       });
     }
   });

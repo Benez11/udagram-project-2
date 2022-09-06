@@ -86,11 +86,18 @@ function compare_url_with_allowed_image_extensions(
 
     return { status: true };
   } catch (e) {
+    const error_data: any = {};
+    if (e instanceof Error)
+      error_data.error = {
+        message: e.message,
+        data: e.stack,
+      };
+    else error_data.error = e;
+
     return {
       status: false,
       status_code: 500,
-      message: e.message,
-      data: e.stack,
+      ...error_data.error,
     };
   }
 }
@@ -115,11 +122,18 @@ function check_if_content_type_is_image(response: Response): FunctionResponse {
 
     return { status: true };
   } catch (e) {
+    const error_data: any = {};
+    if (e instanceof Error)
+      error_data.error = {
+        message: e.message,
+        data: e.stack,
+      };
+    else error_data.error = e;
+
     return {
       status: false,
       status_code: 500,
-      message: e.message,
-      data: e.stack,
+      ...error_data.error,
     };
   }
 }
@@ -152,11 +166,18 @@ export async function validateImageUrl(url: string): Promise<FunctionResponse> {
 
     return { status: true, response };
   } catch (e) {
+    const error_data: any = {};
+    if (e instanceof Error)
+      error_data.error = {
+        message: e.message,
+        data: e.stack,
+      };
+    else error_data.error = e;
+
     return {
       status: false,
       status_code: 500,
-      message: e.message,
-      data: e.stack,
+      ...error_data.error,
     };
   }
 }
