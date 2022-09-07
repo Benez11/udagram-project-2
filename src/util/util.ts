@@ -2,12 +2,33 @@ import fs from "fs";
 import Jimp = require("jimp");
 import fetch from "node-fetch";
 import { Response } from "node-fetch";
+import express from "express";
 
-// import { RequestInfo, RequestInit } from "node-fetch";
-// const fetch = (url_string: RequestInfo, init?: RequestInit) =>
-//   import("node-fetch").then(({ default: fetch_meth }) =>
-//     fetch_meth(url_string, init)
-//   );
+const Express = express();
+
+export function error_catcher(
+  fn: Function,
+  {} = { response: Express.response }
+): FunctionResponse {
+  try {
+    return fn();
+  } catch (e) {
+    const error_data: any = {};
+    if (e instanceof Error)
+      error_data.error = {
+        message: e.message,
+        data: e.stack,
+        error: e,
+      };
+    else error_data.error = e;
+
+    return {
+      status: false,
+      status_code: 500,
+      ...error_data.error,
+    };
+  }
+}
 
 // filterImageFromURL
 // helper function to download, filter, and save the filtered image locally
@@ -16,10 +37,16 @@ import { Response } from "node-fetch";
 //    inputURL: string - a publicly accessible url to an image file
 // RETURNS
 //    an absolute path to a filtered image locally saved file
-export async function filterImageFromURL(inputURL: string): Promise<string> {
+export async function filterImageFromURL(
+  input: string | Buffer
+): Promise<string> {
   return new Promise(async (resolve, reject) => {
     try {
-      const photo = await Jimp.read(inputURL);
+      let read_fn;
+      if (Buffer.isBuffer(input)) read_fn = Jimp.read(input);
+      else if (typeof input === "string") read_fn = Jimp.read(input);
+
+      const photo = await read_fn;
       const outpath =
         "/tmp/filtered." + Math.floor(Math.random() * 2000) + ".jpg";
       await photo
@@ -54,6 +81,7 @@ interface FunctionResponse {
     url?: string;
     supported_extensions?: string[];
     response?: Response;
+    url_response?: Response;
     is_image?: boolean;
   };
   response?: Response;
@@ -63,7 +91,7 @@ interface FunctionResponse {
 function compare_url_with_allowed_image_extensions(
   url: string
 ): FunctionResponse {
-  try {
+  return error_catcher(() => {
     let ext_is_supported = false;
     const supported_extensions = ["jpeg", "jpg", "png", "gif"];
 
@@ -85,25 +113,11 @@ function compare_url_with_allowed_image_extensions(
       };
 
     return { status: true };
-  } catch (e) {
-    const error_data: any = {};
-    if (e instanceof Error)
-      error_data.error = {
-        message: e.message,
-        data: e.stack,
-      };
-    else error_data.error = e;
-
-    return {
-      status: false,
-      status_code: 500,
-      ...error_data.error,
-    };
-  }
+  });
 }
 
 function check_if_content_type_is_image(response: Response): FunctionResponse {
-  try {
+  return error_catcher(() => {
     const is_image =
       Number(
         (
@@ -121,37 +135,26 @@ function check_if_content_type_is_image(response: Response): FunctionResponse {
       };
 
     return { status: true };
-  } catch (e) {
-    const error_data: any = {};
-    if (e instanceof Error)
-      error_data.error = {
-        message: e.message,
-        data: e.stack,
-      };
-    else error_data.error = e;
-
-    return {
-      status: false,
-      status_code: 500,
-      ...error_data.error,
-    };
-  }
+  });
 }
 
-export async function validateImageUrl(url: string): Promise<FunctionResponse> {
-  try {
+export async function validateImageUrl(url: string) {
+  return error_catcher(async () => {
+    // Allow URLs not with an image to pass through until traffic becomes an issue
+
     // Check if the url has a valid image extension in its string (before fetching the image - saves resources)
-    const url_extension_is_valid =
-      compare_url_with_allowed_image_extensions(url);
-    if (!url_extension_is_valid.status) return url_extension_is_valid;
+    // const url_extension_is_valid =
+    //   compare_url_with_allowed_image_extensions(url);
+    // if (!url_extension_is_valid.status) return url_extension_is_valid;
 
     // Check is the response is an image
     const response = await fetch(url);
     if (!response.ok)
       return {
         status: false,
-        message: `Failed to access URL > ${url}`,
-        data: response,
+        message: `Failed to access the image URL`,
+        data: { url, url_response: response },
+        status_code: response.status,
       };
 
     // Log every request and its content type header
@@ -165,19 +168,5 @@ export async function validateImageUrl(url: string): Promise<FunctionResponse> {
     if (!response_is_image.status) return response_is_image;
 
     return { status: true, response };
-  } catch (e) {
-    const error_data: any = {};
-    if (e instanceof Error)
-      error_data.error = {
-        message: e.message,
-        data: e.stack,
-      };
-    else error_data.error = e;
-
-    return {
-      status: false,
-      status_code: 500,
-      ...error_data.error,
-    };
-  }
+  });
 }
