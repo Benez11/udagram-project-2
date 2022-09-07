@@ -66,7 +66,8 @@ import {
         });
       }
 
-      const downloaded_image_path = await filterImageFromURL(image_url);
+      const response_buffer = await check_image_response.response.buffer();
+      const downloaded_image_path = await filterImageFromURL(response_buffer);
       res.sendFile(downloaded_image_path);
       res.on("finish", () => {
         deleteLocalFiles([downloaded_image_path]);
