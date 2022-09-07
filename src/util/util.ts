@@ -7,8 +7,8 @@ import express from "express";
 const Express = express();
 
 export function error_catcher(
-  fn: Function,
-  {} = { response: Express.response }
+  fn: Function
+  // {} = { response: Express.response }
 ): FunctionResponse {
   try {
     return fn();
