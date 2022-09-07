@@ -2,9 +2,9 @@ import fs from "fs";
 import Jimp = require("jimp");
 import fetch from "node-fetch";
 import { Response } from "node-fetch";
-import express from "express";
+// import express from "express";
 
-const Express = express();
+// const Express = express();
 
 export function error_catcher(
   fn: Function
