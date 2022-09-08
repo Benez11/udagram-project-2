@@ -6,6 +6,11 @@ import { Response } from "node-fetch";
 
 // const Express = express();
 
+/**
+ * Wraps a callback function in a try catch block and returns a uniform object
+ * @param fn callback function to be 'safely' executed
+ * @returns (interface) FunctionResponse
+ */
 export function error_catcher(
   fn: Function
   // {} = { response: Express.response }
@@ -42,6 +47,7 @@ export async function filterImageFromURL(
 ): Promise<string> {
   return new Promise(async (resolve, reject) => {
     try {
+      // Did this to narrow the possible types to string (Image URL) and buffer (HTTP Response's Content/Data gotten from a prior (node-fetch) HTTP Request to the URL)
       let read_fn;
       if (Buffer.isBuffer(input)) read_fn = Jimp.read(input);
       else if (typeof input === "string") read_fn = Jimp.read(input);
@@ -83,8 +89,11 @@ interface FunctionResponse {
     response?: Response;
     url_response?: Response;
     is_image?: boolean;
+    response_string?: string;
+    error_type?: string;
   };
   response?: Response;
+  response_buffer?: Buffer;
 }
 
 // check if url image extension is a supported image extension. for now, the image urls have to have the image extensions in their paths - if the image url is https://site.com/image15, this service wouldn't fetch the image
@@ -140,7 +149,7 @@ function check_if_content_type_is_image(response: Response): FunctionResponse {
 
 export async function validateImageUrl(url: string) {
   return error_catcher(async () => {
-    // Allow URLs not with an image to pass through until traffic becomes an issue
+    // Allow URLs not with an image extension to pass through until traffic becomes an issue
 
     // Check if the url has a valid image extension in its string (before fetching the image - saves resources)
     // const url_extension_is_valid =
@@ -149,15 +158,28 @@ export async function validateImageUrl(url: string) {
 
     // Check is the response is an image
     const response = await fetch(url);
-    if (!response.ok)
+    const response_buffer = await response.buffer();
+    const response_string = response_buffer.toString();
+    const is_cloudflare_error = response_string.includes("cloudflare");
+
+    // console.log({ response_string });
+
+    if (!response.ok && !is_cloudflare_error)
       return {
         status: false,
         message: `Failed to access the image URL`,
-        data: { url, url_response: response },
+        data: { url, response_string },
+        status_code: response.status,
+      };
+    else if (is_cloudflare_error)
+      return {
+        status: false,
+        message: `Failed to access this image as it is protected by cloudflare`,
+        data: { url, response_string, error_type: "cloudflare" },
         status_code: response.status,
       };
 
-    // Log every request and its content type header
+    // Log every request's image url and its response's content type header
     console.info({
       url,
       content_type_header: response.headers.get("content-type"),
@@ -167,6 +189,6 @@ export async function validateImageUrl(url: string) {
     const response_is_image = check_if_content_type_is_image(response);
     if (!response_is_image.status) return response_is_image;
 
-    return { status: true, response };
+    return { status: true, response, response_buffer };
   });
 }
