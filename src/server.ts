@@ -54,20 +54,25 @@ import {
       // validate image url
       const check_image_response = await validateImageUrl(image_url);
       if (!check_image_response.status) {
-        console.error(`URI: '/filteredimage' > validateImageUrl (error) >`, {
-          image_url,
-          check_image_response,
-        });
+        check_image_response.data &&
+        check_image_response.data.error_type !== "cloudflare"
+          ? console.error(
+              `URI: '/filteredimage' > validateImageUrl (error) >`,
+              {
+                image_url,
+                check_image_response,
+              }
+            )
+          : "";
         return res.status(check_image_response.status_code || 400).json({
           message: check_image_response.message,
-          data: !check_image_response.status_code
-            ? check_image_response.data
-            : undefined,
+          data: check_image_response.data,
         });
       }
 
-      const response_buffer = await check_image_response.response.buffer();
-      const downloaded_image_path = await filterImageFromURL(response_buffer);
+      const downloaded_image_path = await filterImageFromURL(
+        check_image_response.response_buffer
+      );
       res.sendFile(downloaded_image_path);
       res.on("finish", () => {
         deleteLocalFiles([downloaded_image_path]);
