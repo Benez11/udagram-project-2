@@ -1,17 +1,21 @@
 import express from "express";
 import bodyParser from "body-parser";
+import { Application, Request, Response } from "express";
 import {
   filterImageFromURL,
   deleteLocalFiles,
   validateImageUrl,
+  FunctionResponse,
 } from "./util/util";
+
+type RequestQuery = { image_url?: string };
 
 (async () => {
   // Init the Express application
-  const app = express();
+  const app: Application = express();
 
   // Set the network port
-  const port = process.env.PORT || 8082;
+  const port: number = (process.env.PORT as unknown as number) || 8082;
 
   // Use the body parser middleware for post requests
   app.use(bodyParser.json());
@@ -36,14 +40,14 @@ import {
 
   // Root Endpoint
   // Displays a simple message to the user
-  app.get("/", async (req, res) => {
+  app.get("/", async (req: Request, res: Response) => {
     res.send("try GET /filteredimage?image_url={{}}");
   });
 
-  app.get("/filteredimage", async (req, res) => {
+  app.get("/filteredimage", async (req: Request, res: Response) => {
     try {
       // Extract and validate image_url query parameter
-      const { image_url }: { image_url: string } = req.query;
+      const { image_url }: RequestQuery = req.query as object;
       if (!image_url)
         return res.status(400).json({
           message:
@@ -52,7 +56,9 @@ import {
         });
 
       // validate image url
-      const check_image_response = await validateImageUrl(image_url);
+      const check_image_response: FunctionResponse = await validateImageUrl(
+        image_url
+      );
       if (!check_image_response.status) {
         check_image_response.data &&
         check_image_response.data.error_type !== "cloudflare"
@@ -70,7 +76,7 @@ import {
         });
       }
 
-      const downloaded_image_path = await filterImageFromURL(
+      const downloaded_image_path: string = await filterImageFromURL(
         check_image_response.response_buffer
       );
       res.sendFile(downloaded_image_path);
