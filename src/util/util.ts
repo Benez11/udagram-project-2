@@ -79,7 +79,7 @@ export async function deleteLocalFiles(files: Array<string>) {
   }
 }
 
-interface FunctionResponse {
+export interface FunctionResponse {
   status_code?: number;
   status: boolean;
   message?: string;
@@ -101,8 +101,8 @@ function compare_url_with_allowed_image_extensions(
   url: string
 ): FunctionResponse {
   return error_catcher(() => {
-    let ext_is_supported = false;
-    const supported_extensions = ["jpeg", "jpg", "png", "gif"];
+    let ext_is_supported: boolean = false;
+    const supported_extensions: string[] = ["jpeg", "jpg", "png", "gif"];
 
     supported_extensions.every((ext) => {
       if (
@@ -127,7 +127,7 @@ function compare_url_with_allowed_image_extensions(
 
 function check_if_content_type_is_image(response: Response): FunctionResponse {
   return error_catcher(() => {
-    const is_image =
+    const is_image: boolean =
       Number(
         (
           response.headers
@@ -157,10 +157,10 @@ export async function validateImageUrl(url: string) {
     // if (!url_extension_is_valid.status) return url_extension_is_valid;
 
     // Check is the response is an image
-    const response = await fetch(url);
-    const response_buffer = await response.buffer();
-    const response_string = response_buffer.toString();
-    const is_cloudflare_error = response_string.includes("cloudflare");
+    const response: Response = await fetch(url);
+    const response_buffer: Buffer = await response.buffer();
+    const response_string: string = response_buffer.toString();
+    const is_cloudflare_error: boolean = response_string.includes("cloudflare");
 
     // console.log({ response_string });
 
@@ -186,7 +186,8 @@ export async function validateImageUrl(url: string) {
     });
 
     // Check if the content returned by the fetch call is an image
-    const response_is_image = check_if_content_type_is_image(response);
+    const response_is_image: FunctionResponse =
+      check_if_content_type_is_image(response);
     if (!response_is_image.status) return response_is_image;
 
     return { status: true, response, response_buffer };
